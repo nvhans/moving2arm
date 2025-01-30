@@ -1,0 +1,6 @@
+[submodule "multi-platform-dev/porting-advisor-for-graviton"]
+	path = multi-platform-dev/porting-advisor-for-graviton
+	url = https://github.com/aws/porting-advisor-for-graviton
+[submodule "multi-platform-dev/simde"]
+	path = multi-platform-dev/simde
+	url = https://github.com/simd-everywhere/simde
