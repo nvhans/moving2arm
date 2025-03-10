@@ -6,27 +6,25 @@
  * 	_mm_mul_ps	>>	vmulq_f32
  * 	_mm_sqrt_ps	>>	vsqrtq_f32
  */
-#include <arm_neon.h> // replacing <xmmintrin.h> 
+#include <arm_sve.h> // replacing <xmmintrin.h> 
 #include <stdio.h>
 
 int main() {
-    /* Set up and load our initial array values into registers
-     * NOTE that we need to reverse the vector order before loading
+    /* Initiate vector values and load into registers
+     * NOTE we reverse the order of vector values before loading
      * __m128 a = _mm_set_ps(16.0f, 9.0f, 4.0f, 1.0f); 
      */
     float32_t _a[] = {1.0f, 4.0f, 9.0f, 16.0f};
-    float32x4_t a = vld1q_f32( _a);
+    svfloat32x4_t a = svld1_f32(svptrue_b32(), _a);
 
-    /* Same set up and store as above
-     * __m128 b = _mm_set_ps(4.0f, 3.0f, 2.0f, 1.0f); 
-     */
-    float32_t _b[] = {1.0f,2.0f,3.0f,4.0f}; 
-    float32x4_t b = vld1q_f32(_b);
+    /* __m128 b = _mm_set_ps(4.0f, 3.0f, 2.0f, 1.0f); */
+    float32_t _b[] = {4.0f, 3.0f, 2.0f, 1.0f}; 
+    svfloat32x4_t b = svld1_f32(svptrue_b32(), _b);
 
     /* element-wise greater-than comparison
      * __m128 cmp_result = _mm_cmpgt_ps(a, b);
      */
-    uint32x4_t cmp_result = vcgtq_f32(a,b);
+    svuint32x4_t cmp_result = svcgtq_f32(a, b);
 
     float32_t a_arr[4], b_arr[4];
     uint32_t cmp_arr[4];
@@ -59,7 +57,7 @@ int main() {
 
     float32_t res[4]; // 4-element vector for printing results
 
-    /* store results in CPU memory
+    /* store results
      * _mm_storeu_ps(res, add_result);
      */
     vst1q_f32(res, add_result);
