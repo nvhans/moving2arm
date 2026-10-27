@@ -1,0 +1,82 @@
+name: Porting examples
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install build tools and optional xsimd headers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libxsimd-dev python3-dev
+      - name: Configure with memory and undefined-behavior checks
+        run: >-
+          cmake -S . -B build/native -G Ninja
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo
+          -DXSIMD_INCLUDE_DIR=/usr/include
+          -DCMAKE_C_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
+          -DCMAKE_CXX_FLAGS='-fsanitize=address,undefined -fno-omit-frame-pointer'
+      - run: cmake --build build/native
+      - run: ctest --test-dir build/native --output-on-failure
+      - name: Build and validate a native CPython wheel without installing it
+        run: |
+          cmake -S . -B build/python -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DMOVING2ARM_BUILD_PYTHON=ON -DPython3_EXECUTABLE="$(command -v python3)"
+          cmake --build build/python --target native_wheel lab_native_dependency
+          ctest --test-dir build/python --output-on-failure -R 'native_dependency'
+      - name: Check xsimd with eight float lanes on AVX2 hosts
+        if: matrix.runner == 'ubuntu-24.04'
+        shell: bash
+        run: |
+          if ! grep -qw avx2 /proc/cpuinfo; then
+            echo 'AVX2 unavailable; skipping the wider-batch run.'
+            exit 0
+          fi
+          cmake -S . -B build/avx2 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DXSIMD_INCLUDE_DIR=/usr/include \
+            -DCMAKE_CXX_FLAGS='-mavx2 -fsanitize=address,undefined -fno-omit-frame-pointer'
+          cmake --build build/avx2 --target calculation_xsimd calculation_xsimd_test
+          ctest --test-dir build/avx2 --output-on-failure -R '^calculation_xsimd\.'
+
+  sve-emulated:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        # QEMU counts 128-bit vector quanta.
+        include:
+          - {vq: 1, bits: 128}
+          - {vq: 4, bits: 512}
+          - {vq: 16, bits: 2048}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install the cross compiler and emulator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build gcc-aarch64-linux-gnu g++-aarch64-linux-gnu qemu-user
+      - name: Configure AArch64 SVE and SVE2
+        run: >-
+          cmake -S . -B build/sve -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=aarch64
+          -DCMAKE_C_COMPILER=aarch64-linux-gnu-gcc
+          -DCMAKE_CXX_COMPILER=aarch64-linux-gnu-g++
+          '-DCMAKE_CROSSCOMPILING_EMULATOR=qemu-aarch64;-L;/usr/aarch64-linux-gnu;-cpu;max,sve-max-vq=${{ matrix.vq }},sve-default-vector-length=-1'
+          -DMOVING2ARM_ENABLE_SVE=ON -DMOVING2ARM_ENABLE_SVE2=ON
+      - run: cmake --build build/sve
+      - run: ctest --test-dir build/sve --output-on-failure
+        env:
+          MOVING2ARM_EXPECT_SVE_BITS: ${{ matrix.bits }}

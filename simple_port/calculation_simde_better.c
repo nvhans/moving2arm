@@ -1,40 +1,27 @@
-/* replacing with SIMDE #include <xmmintrin.h> */
+/* Explicit SIMDe names avoid introducing x86 aliases. */
 #include <simde/x86/sse.h>
-#include <stdio.h>
+#include "calculation.h"
 
-int main() {
-    simde__m128 a = simde_mm_set_ps(16.0f, 9.0f, 4.0f, 1.0f);
-    simde__m128 b = simde_mm_set_ps(4.0f, 3.0f, 2.0f, 1.0f);
-
-    simde__m128 cmp_result = simde_mm_cmpgt_ps(a, b);
-
-    float a_arr[4], b_arr[4], cmp_arr[4];
-    simde_mm_storeu_ps(a_arr, a);
-    simde_mm_storeu_ps(b_arr, b);
-    simde_mm_storeu_ps(cmp_arr, cmp_result);
-
-    for (int i = 0; i < 4; i++) {
-        if (cmp_arr[i] != 0.0f) {
-            printf("Element %d: %.2f is larger than %.2f\n", i, a_arr[i], b_arr[i]);
-        } else {
-            printf("Element %d: %.2f is not larger than %.2f\n", i, a_arr[i], b_arr[i]);
+/* Array loads preserve element order. _mm_set_ps instead lists the highest
+ * lane first; this is a constructor convention, not an Arm/x86 difference.
+ * The original x86 intrinsics belong to SSE.
+ */
+void calculate(const float *a, const float *b, size_t n, calculation_output out) {
+    size_t i = 0;
+    for (; n - i >= 4; i += 4) {
+        const simde__m128 va = simde_mm_loadu_ps(a + i);
+        const simde__m128 vb = simde_mm_loadu_ps(b + i);
+        const simde__m128 sum = simde_mm_add_ps(va, vb);
+        const simde__m128 product = simde_mm_mul_ps(sum, vb);
+        const unsigned mask = (unsigned)simde_mm_movemask_ps(simde_mm_cmpgt_ps(va, vb));
+        for (unsigned lane = 0; lane < 4; ++lane) {
+            out.greater[i + lane] = (mask >> lane) & 1u;
         }
+        simde_mm_storeu_ps(out.add + i, sum);
+        simde_mm_storeu_ps(out.mul + i, product);
+        simde_mm_storeu_ps(out.root + i, simde_mm_sqrt_ps(product));
     }
-
-    simde__m128 add_result = simde_mm_add_ps(a, b);
-    simde__m128 mul_result = simde_mm_mul_ps(add_result, b);
-    simde__m128 sqrt_result = simde_mm_sqrt_ps(mul_result);
-
-    float res[4];
-
-    simde_mm_storeu_ps(res, add_result);
-    printf("Addition Result: %f %f %f %f\n", res[0], res[1], res[2], res[3]);
-
-    simde_mm_storeu_ps(res, mul_result);
-    printf("Multiplication Result: %f %f %f %f\n", res[0], res[1], res[2], res[3]);
-
-    simde_mm_storeu_ps(res, sqrt_result);
-    printf("Square Root Result: %f %f %f %f\n", res[0], res[1], res[2], res[3]);
-
-    return 0;
+    calculate_scalar_range(a, b, i, n, out);
 }
+
+#include "calculation_demo.h"
