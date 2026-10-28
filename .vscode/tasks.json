@@ -1,0 +1,51 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Porting: configure Debug",
+      "type": "process",
+      "command": "cmake",
+      "args": ["--preset", "dev-debug"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "problemMatcher": []
+    },
+    {
+      "label": "Porting: build Debug",
+      "type": "process",
+      "command": "cmake",
+      "args": ["--build", "--preset", "dev-debug"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "dependsOn": "Porting: configure Debug",
+      "group": {"kind": "build", "isDefault": true},
+      "problemMatcher": ["$gcc"]
+    },
+    {
+      "label": "Porting: test all (Debug)",
+      "type": "process",
+      "command": "ctest",
+      "args": ["--preset", "dev-debug"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "dependsOn": "Porting: build Debug",
+      "group": {"kind": "test", "isDefault": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Porting: test SIMD (Debug)",
+      "type": "process",
+      "command": "ctest",
+      "args": ["--preset", "dev-debug", "-L", "simple_port"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "dependsOn": "Porting: build Debug",
+      "problemMatcher": []
+    },
+    {
+      "label": "Porting: build scalar (Debug)",
+      "type": "process",
+      "command": "cmake",
+      "args": ["--build", "--preset", "dev-debug", "--target", "calculation"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "dependsOn": "Porting: configure Debug",
+      "problemMatcher": ["$gcc"]
+    }
+  ]
+}

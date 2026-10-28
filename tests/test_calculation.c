@@ -77,6 +77,10 @@ static int check_length(size_t n) {
             !equivalent(out.add[i], sum) || !equivalent(out.mul[i], product) ||
             !equivalent(out.root[i], sqrtf(product))) {
             fprintf(stderr, "Length %zu: incorrect result at element %zu\n", n, i);
+            fprintf(stderr, "  mask: %u vs %u; add: %a vs %a; mul: %a vs %a; root: %a vs %a\n",
+                    (unsigned)out.greater[i], (unsigned)(a[i] > b[i]),
+                    (double)out.add[i], (double)sum, (double)out.mul[i], (double)product,
+                    (double)out.root[i], (double)sqrtf(product));
             failed = 1;
             break;
         }

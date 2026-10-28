@@ -1,4 +1,5 @@
 #include <xsimd/xsimd.hpp>
+#include <limits>
 #include "calculation.h"
 
 /* The selected compiler target determines batch width, including on x86.
@@ -20,7 +21,13 @@ void calculate(const float *a, const float *b, size_t n, calculation_output out)
         }
         sum.store_unaligned(out.add + i);
         product.store_unaligned(out.mul + i);
-        xsimd::sqrt(product).store_unaligned(out.root + i);
+        /* xsimd 8's NEON sqrt loses -0 and can produce NaN for +infinity.
+         * Preserve those lanes to match sqrtf and the direct-intrinsic ports.
+         */
+        const auto special = (product == batch(0.0f)) |
+                             (product == batch(std::numeric_limits<float>::infinity()));
+        xsimd::select(special, product, xsimd::sqrt(product))
+            .store_unaligned(out.root + i);
     }
     calculate_scalar_range(a, b, i, n, out);
 }

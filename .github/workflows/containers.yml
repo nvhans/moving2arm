@@ -1,0 +1,53 @@
+name: Container images
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  native-images:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {runner: ubuntu-24.04, platform: linux/amd64}
+          - {runner: ubuntu-24.04-arm, platform: linux/arm64}
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Build the default command-line image
+        run: >-
+          docker build --platform ${{ matrix.platform }}
+          --file multi-platform-dev/Dockerfile --tag moving2arm:cli multi-platform-dev
+      - name: Verify the CLI default and run the complete porting suite
+        run: |
+          docker run --rm moving2arm:cli sh -c '! command -v code-server'
+          docker run --rm --volume "$PWD:/workspace:ro" --workdir /workspace \
+            moving2arm:cli bash -c '
+              cmake -S . -B /tmp/porting-build -DCMAKE_BUILD_TYPE=Release -DMOVING2ARM_BUILD_PYTHON=ON &&
+              cmake --build /tmp/porting-build --parallel 2 &&
+              ctest --test-dir /tmp/porting-build --output-on-failure'
+      - name: Build the optional browser editor
+        run: >-
+          docker build --platform ${{ matrix.platform }} --target code-server
+          --file multi-platform-dev/Dockerfile --tag moving2arm:code-server multi-platform-dev
+      - name: Check editor version
+        run: docker run --rm moving2arm:code-server --version
+      - name: Check login, writable workspace, and persisted editor state
+        run: >-
+          python3 tests/smoke_code_server.py --image moving2arm:code-server
+          --workspace "$PWD" --state-dir "$RUNNER_TEMP/moving2arm-code-server"
+      - name: Start the student Dev Container and run its setup
+        run: npx --yes @devcontainers/cli@0.90.0 up --workspace-folder "$PWD"
+      - name: Check student build, tests, and debugger
+        run: |
+          npx --yes @devcontainers/cli@0.90.0 exec --workspace-folder "$PWD" \
+            cmake --build --preset dev-debug
+          npx --yes @devcontainers/cli@0.90.0 exec --workspace-folder "$PWD" \
+            ctest --preset dev-debug
+          npx --yes @devcontainers/cli@0.90.0 exec --workspace-folder "$PWD" \
+            sh .devcontainer/check-debugger.sh

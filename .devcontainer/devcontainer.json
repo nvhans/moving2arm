@@ -1,0 +1,34 @@
+{
+  "name": "moving2arm: C/C++ porting",
+  "build": {
+    "dockerfile": "../multi-platform-dev/Dockerfile",
+    "context": "../multi-platform-dev",
+    "target": "devcontainer"
+  },
+  "remoteUser": "ubuntu",
+  "updateRemoteUserUID": true,
+  "init": true,
+  "waitFor": "postCreateCommand",
+  "postCreateCommand": ["sh", ".devcontainer/setup.sh"],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-vscode.cpptools",
+        "ms-vscode.cmake-tools"
+      ],
+      "settings": {
+        "cmake.useCMakePresets": "always",
+        "cmake.configureOnOpen": false,
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "cmake.debugConfig": {
+          "MIMode": "gdb",
+          "miDebuggerPath": "/usr/bin/gdb",
+          "setupCommands": [
+            {"text": "set disable-randomization off"}
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "version": 2,
+  "cmakeMinimumRequired": {"major": 3, "minor": 20, "patch": 0},
+  "configurePresets": [
+    {
+      "name": "dev-common",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/devcontainer-$env{MOVING2ARM_DEV_ARCH}/${presetName}",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc-12",
+        "CMAKE_CXX_COMPILER": "g++-12",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "BUILD_TESTING": "ON",
+        "MOVING2ARM_BUILD_LABS": "ON",
+        "MOVING2ARM_BUILD_PYTHON": "OFF"
+      }
+    },
+    {
+      "name": "dev-debug",
+      "displayName": "Porting: Debug",
+      "inherits": "dev-common",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Debug"}
+    },
+    {
+      "name": "dev-release",
+      "displayName": "Porting: Release",
+      "inherits": "dev-common",
+      "cacheVariables": {"CMAKE_BUILD_TYPE": "Release"}
+    },
+    {
+      "name": "dev-sanitize",
+      "displayName": "Porting: Address/undefined behavior sanitizers",
+      "inherits": "dev-debug",
+      "cacheVariables": {
+        "CMAKE_C_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer",
+        "CMAKE_CXX_FLAGS": "-fsanitize=address,undefined -fno-omit-frame-pointer"
+      }
+    },
+    {
+      "name": "dev-python",
+      "displayName": "Porting: Python extension and wheel",
+      "inherits": "dev-debug",
+      "cacheVariables": {"MOVING2ARM_BUILD_PYTHON": "ON"}
+    }
+  ],
+  "buildPresets": [
+    {"name": "dev-debug", "configurePreset": "dev-debug", "jobs": 2},
+    {"name": "dev-release", "configurePreset": "dev-release", "jobs": 2},
+    {"name": "dev-sanitize", "configurePreset": "dev-sanitize", "jobs": 2},
+    {"name": "dev-python", "configurePreset": "dev-python", "jobs": 2}
+  ],
+  "testPresets": [
+    {"name": "dev-debug", "configurePreset": "dev-debug", "output": {"outputOnFailure": true}, "execution": {"noTestsAction": "error"}},
+    {"name": "dev-release", "configurePreset": "dev-release", "output": {"outputOnFailure": true}, "execution": {"noTestsAction": "error"}},
+    {"name": "dev-sanitize", "configurePreset": "dev-sanitize", "output": {"outputOnFailure": true}, "execution": {"noTestsAction": "error"}},
+    {"name": "dev-python", "configurePreset": "dev-python", "output": {"outputOnFailure": true}, "execution": {"noTestsAction": "error"}}
+  ]
+}

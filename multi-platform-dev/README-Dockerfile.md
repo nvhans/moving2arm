@@ -3,10 +3,15 @@
 For macOS with Apple silicon, use the [Apple `container` workflow](README-container.md).
 Both workflows build `Dockerfile`, the canonical definition in this directory.
 
+For a self-hosted browser editor, see the optional
+[code-server image and launch instructions](README-code-server.md).
+For a desktop GUI with build/test tasks and debugging, use the
+[local VS Code Dev Container](../.devcontainer/README.md).
+
 ## Requirements
 
 - Linux on x86-64 or AArch64, with Docker installed.
-- The repository's SIMDe submodule initialized.
+- Internet access to download the pinned, checksum-verified SIMD headers.
 - For the other architecture, an emulator configured for Docker. Follow
   [Docker's multi-platform prerequisites](https://docs.docker.com/build/building/multi-platform/).
   Native builds don't require emulation.
@@ -29,7 +34,10 @@ Each command builds a single-platform image and loads it into the local image
 store. The non-native build requires emulation or a builder for that platform.
 
 The image contains Ubuntu 22.04, GCC/G++ 12, CMake/CTest, Ninja, Python, debugging
-tools, SIMDe, and xsimd. `CC` and `CXX` select GCC/G++ 12 for CMake by default.
+tools, SIMDe, and pinned xsimd 8.1.0 headers. `CC` and `CXX` select GCC/G++ 12 for CMake by default.
+SIMDe is pinned to the repository's submodule revision; the image can build
+before submodules are initialized. Update its revision and checksum together
+when updating the gitlink.
 Package patch versions depend on the Ubuntu repositories at build time. Porting
 Advisor is a separate setup described in the [project README](../README.md#porting-advisor-exercise).
 

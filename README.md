@@ -11,6 +11,13 @@ Source repository: [nvhans/moving2arm](https://github.com/nvhans/moving2arm).
 
 ## Get started
 
+For a GUI with a supplied toolchain, start with the
+[local VS Code Dev Container](.devcontainer/README.md). You need VS Code, its
+Dev Containers extension, and a local Docker engine. The recommended
+clone-in-container workflow needs no host Git, compiler, CMake, or Python.
+
+For a native command-line build, follow the steps below.
+
 Use Git, a C11/C++14 compiler, and CMake 3.20 or later. The additional labs target
 Linux and macOS. For a consistent Linux toolchain, use one of the container
 workflows below. CMake discovers installed dependencies without downloading them.
@@ -128,7 +135,9 @@ docker run --rm -it --platform linux/amd64 \
 
 On Linux AArch64, replace `linux/amd64` with `linux/arm64` and
 `moving2arm:amd64` with `moving2arm:arm64` in both commands. The final build
-argument is the context containing the SIMDe submodule.
+argument sets the image build context. The image downloads checksum-verified
+SIMDe headers pinned to the repository's submodule revision; initialized
+submodules aren't required to build the image.
 
 Inside the container, build and run the full suite:
 
@@ -297,31 +306,47 @@ separate commands in the walkthrough. Set `-DMOVING2ARM_BUILD_LABS=OFF` for a
 SIMD-only build. The native CI jobs run the C labs with sanitizers and test the
 Python wheel in a separate unsanitized build.
 
-## GUI learning environments (planned)
+## GUI learning environments
 
-The following profiles are options for extending the shared development image;
-their launch configuration and learning materials are future work.
+The [local VS Code Dev Container](.devcontainer/README.md) is the recommended
+student GUI. It supplies the compiler, debugger, libraries, C/C++ and CMake
+extensions, build/test tasks, and an F5 starter for the scalar example. Clone
+directly into a container volume to avoid installing host Git or development
+tools. Debug, Release, sanitizer, and Python presets keep build output separate
+by architecture and configuration. The desktop workflow uses a local Docker
+engine; see the guide for prerequisites and a first exercise.
+
+The optional [code-server profile](multi-platform-dev/README-code-server.md)
+provides a self-hosted VS Code-based browser editor, a terminal, and the existing
+porting toolchain. Build with `--target code-server` using Docker or Apple
+`container`, then follow the guide to mount the checkout, persist editor state,
+and open the authenticated editor. The default image remains the command-line
+environment. Image and browser runtime checks are defined in the container
+workflow, including login, persistent state, and the CMake test suite.
+
+Additional GUI profiles remain options for future work:
 
 | Option | Learning workflow | Additional project work |
 | --- | --- | --- |
-| VS Code with Dev Containers | Edit C/C++, build with CMake, inspect diagnostics, and debug inside the development container | Add a `.devcontainer` configuration and select C/C++ and CMake tooling |
 | VS Code Remote - SSH with Dev Containers | Use a desktop editor with source and container execution on a learner's own Linux host | Document the remote folder and container setup |
 | JupyterLab | Follow guided notebooks, run compiler/test commands in terminals or Python cells, and plot numerical results | Add an optional Python environment, a JupyterLab launch profile, and introductory notebooks |
 
 VS Code supports using Remote - SSH and Dev Containers together; the source
 checkout and bind mounts then belong to the remote host.
 [VS Code remote-container workflow](https://code.visualstudio.com/remote/advancedcontainers/develop-remote-host)
-The proposed VS Code profiles target Docker; Apple `container` compatibility
-needs a separate check.
+The VS Code Dev Container profile targets Docker. Apple `container` remains an
+option for the CLI and browser editor, and supports an
+[experimental desktop attachment workflow](.devcontainer/README-apple-container.md)
+with explicit setup and extension installation.
 JupyterLab supplies the browser workspace; the C/C++ examples can still be built
 through the existing CMake commands.
 [JupyterLab documentation](https://jupyterlab.readthedocs.io/en/stable/getting_started/starting.html)
 
-Before adding either profile, validate the current command-line image build and
-full test suite on `linux/amd64` and `linux/arm64`, including the optional Python
-extension and wheel tests. Keep GUI dependencies opt-in and preserve the existing
-command-line workflow. Review workspace UID/GID mapping and the image's current
-fixed-password/passwordless-sudo setup as part of the runtime design.
+The container workflow checks command-line builds, the optional Python extension
+and wheel, browser editor state, and Dev Container setup/build/test/debug on
+native `linux/amd64` and `linux/arm64` runners. GUI profiles are opt-in. The
+development image retains its existing passwordless-sudo user and is intended
+for a learner's local development environment.
 
 For a remote JupyterLab profile, plan for SSH-forwarded access and retain server
 authentication. Jupyter Server enables token authentication by default.

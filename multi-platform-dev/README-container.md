@@ -5,6 +5,11 @@ the Linux porting environment on a Mac with Apple silicon. Docker Desktop isn't
 required. The commands below reuse `Dockerfile`; a separate image definition
 isn't needed for macOS.
 
+The same Dockerfile also provides an optional
+[code-server browser editor](README-code-server.md) using `--target code-server`.
+For desktop VS Code, see the
+[experimental Apple-container attachment workflow](../.devcontainer/README-apple-container.md).
+
 ## Requirements
 
 - A Mac with Apple silicon and macOS 26 or later, as specified in Apple's
@@ -14,8 +19,7 @@ isn't needed for macOS.
 - Rosetta available for the optional `amd64` build and run. Follow Apple's
   [multiplatform guide](https://github.com/apple/container/blob/main/docs/multiplatform-images.md)
   for architecture translation requirements.
-- This repository's SIMDe submodule initialized. If it wasn't included when
-  cloning, run `git submodule update --init --recursive` from the repository root.
+- Internet access to download the pinned, checksum-verified SIMD headers.
 
 Start the service before building:
 
@@ -29,8 +33,9 @@ On first use, follow any kernel setup prompts from `container`.
 
 ## Build for Arm64
 
-Run from the repository root. The final argument sets the build context so the
-Dockerfile can copy the SIMDe headers from the submodule:
+Run from the repository root. The final argument sets the build context. The
+image downloads SIMDe pinned to the repository's submodule revision, so building
+the image doesn't require initialized submodules:
 
 ```sh
 container build --arch arm64 \
@@ -39,7 +44,7 @@ container build --arch arm64 \
 ```
 
 The image includes Ubuntu 22.04, GCC/G++ 12, CMake/CTest, Ninja, development
-tools, SIMDe, and xsimd. `CC` and `CXX` select GCC/G++ 12 for CMake. Porting Advisor
+tools, SIMDe, and pinned xsimd 8.1.0 headers. `CC` and `CXX` select GCC/G++ 12 for CMake. Porting Advisor
 is a separate setup described in the [project README](../README.md#porting-advisor-exercise).
 
 ## Run the Arm64 environment
@@ -133,5 +138,6 @@ These are Linux builds running on macOS, not native macOS binaries. Selecting
 that supports the required extensions. See the
 [Docker workflow](README-Dockerfile.md) for Linux hosts.
 
-Command options were checked against Apple `container` 1.0.0. The image build and
-container smoke tests haven't yet been verified with this workflow.
+Command options were checked against Apple `container` 1.0.0. The
+[code-server guide](README-code-server.md#version-and-build-validation) includes
+the shared smoke driver for checking the browser profile with this runtime.
